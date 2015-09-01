@@ -8,8 +8,10 @@ from wtforms.validators import Required
 app = Flask(__name__)
 bootstrap = Bootstrap(app)
 app.config['SECRET_KEY'] = 'KnIp3#pPx%2'
-dnsnames=[('hotel_primary','hotel_primary'),('air_primary','air_primary')]
-valid_aliases=[('ny-db-001','ny-db-001'),('ny-db-002','ny-db-002'),('ash1-db-401','ash1-db-401')]
+dnsnames=[('stocks_primary','stocks_primary'),('bonds_primary','bonds_primary')]
+valid_aliases={}
+valid_aliases['stocks_primary']=[('ny-stockdb-001','ny-stockdb-001'),('ny-stockdb-002','ny-stockdb-002'),('tx-stockdb-401','tx-stockdb-401')]
+valid_aliases['bonds_primary']=[('ny-bonddb-001','ny-bonddb-001'),('ny-bonddb-002','ny-bonddb-002'),('tx-bonddb-401','tx-bonddb-401')]
 
 class LoginForm(Form):
     name = StringField('User Name', validators=[Required()])
@@ -21,11 +23,11 @@ class DnsHostForm(Form):
     change = SubmitField('Change')
 
 class DnsAliasForm(Form):
-    alias = RadioField('Alias Name',choices=valid_aliases)
+    alias = RadioField('Alias Name')
     change = SubmitField('Change')
 
 def validate_password(name, passwd):
-    if (name == "test") and (passwd == "winner"):
+    if (name == "test") and (passwd == "test"):
         return True
     else:
         return False
@@ -42,11 +44,27 @@ def index():
             return redirect(url_for('dnshosts'))
     return render_template('index.html', form=form, name=session.get('name'), passwd=passwd)
 
-@app.route('/dnshosts')
+@app.route('/dnshosts', methods=['GET', 'POST'])
 def dnshosts():
     dnsname = None
     form = DnsHostForm()
-    return render_template('dnshost.html', form=form, dnsname=dnsname)
+    if form.validate_on_submit():
+        session['dnsname'] = form.dnsname.data
+        return redirect(url_for('dnsalias'))
+    else:
+        return render_template('dnshost.html', form=form, dnsname=dnsname)
+
+@app.route('/dnsalias')
+def dnsalias():
+    dnsalias = None
+    dnsname=session.get('dnsname')
+    print "dnsname = ", dnsname
+    print valid_aliases[dnsname]
+    form = DnsAliasForm()
+    if form.validate_on_submit():
+        return redirect(url_for('index'))
+    else:
+        return render_template('dnsalias.html', form=form, dnsname=dnsname, alias=valid_aliases[dnsname])
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0',debug=True)
